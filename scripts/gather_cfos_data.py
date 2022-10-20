@@ -153,7 +153,7 @@ def boxplot_multi(cfos_vrt_collapse, y_data, plot_label, labels, palette, save_p
         labels = [labels]
     cfos_vrt_collapse_sub = cfos_vrt_collapse[cfos_vrt_collapse["name"].isin(labels)]
     # sns.set_style("white")
-    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name", col_wrap=5, legend_out=True, height=4.5, aspect=1)
+    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name", col_wrap=5, legend_out=True, height=4.5, aspect=1, sharey=False)
     plt.style.use('ggplot')
     g.map(sns.boxplot, "group", y_data, order=order, palette=palette)
     g.map(sns.swarmplot, "group", y_data, order=order, edgecolor="gray", linewidth=1, palette=palette)
