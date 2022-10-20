@@ -220,16 +220,17 @@ def generate_stats_and_venn(t_test_df, alpha=0.05):
     return venn_diagram, t_test_df_sort_iTBS_30sn, t_test_df_sort_iTBS_1sn, t_test_df_sort_cTBS_1sn
 
 
-def generate_heatmap(cfos_vrt_collapse, t_test_df, pval_label, title, save_path=r"C:\Users\shane\workspace\gather_cfos_data\results"):
-    pval_df = t_test_df[pval_label]
+def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\shane\workspace\gather_cfos_data\results"):
+    # pval_df = t_test_df[pval_label]
     cfos_vrt_collapse_pivot = pd.pivot_table(cfos_vrt_collapse, values = "density_zscore", index="name", columns="group", aggfunc=np.nanmean)
-    cfos_vrt_collapse_pivot["pval"] = pval_df[cfos_vrt_collapse.index].values
-    cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.sort_values(by="pval")
-    cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.drop(columns=["1sn_GFP", "iTBS_30sn_YFP", "pval"]) # drop the control columns, which contain data centered on 0 and are thus not informative for a heatmap
+    # cfos_vrt_collapse_pivot["pval"] = pval_df[cfos_vrt_collapse_pivot.index].values
+    cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.sort_values(by=sort_col)
+    cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.drop(columns=["1sn_GFP", "iTBS_30sn_YFP"]) # drop the control columns, which contain data centered on 0 and are thus not informative for a heatmap
     g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5)
     fig = g.figure
     save_path_full = save_path + r"/" + title + ".png"
-    plt.subplots_adjust(left=0.5)
+    plt.subplots_adjust(left=0.6, bottom=0.3)
+    plt.xticks(rotation=90)
     fig.savefig(save_path_full)
     plt.close()
     return g
@@ -405,7 +406,7 @@ def main():
         palette=optoTMS_colors,
         )
 
-    heatmap = generate_heatmap(cfos_vrt_collapse_sorted, t_test_df=t_test_df, pval_label = "p_iTBS_30sn", title="Density z-score by group and region", save_path=r"C:\Users\shane\workspace\gather_cfos_data\results") # TODO: make this less clunky
+    heatmap = generate_heatmap(cfos_vrt_collapse, sort_col="iTBS_30sn_ChR", title="Density z-score by group and region", save_path=r"C:\Users\shane\workspace\gather_cfos_data\results") # TODO: make this less clunky
 
 
 if __name__ == "__main__":
