@@ -387,6 +387,6 @@ def main():
         palette=optoTMS_colors,
         )
     cfos_vrt_collapse_pivot = pd.pivot_table(cfos_vrt_collapse, values = "density_zscore", index="name", columns="group", aggfunc=np.nanmean)
-    
+    cfos_vrt_collapse_pivot
 if __name__ == "__main__":
     main()
