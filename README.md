@@ -1,0 +1,1 @@
+This is a work in progress script that generates plot of cfos density data across three experiments: 30 session iTBS, 1 session iTBS, and 1 session cTBS. "/scripts/" contains gather_cfos_data.py, which will gather cfos data from our networked attached server (NAS). Currently the paths are specific to my computer but future commits will implement a argparse-based approach.
