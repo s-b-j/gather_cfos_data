@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import ttest_ind
 from matplotlib_venn import venn3
-# test
+pd.options.mode.chained_assignment = None
 
 working_dir = r"C:\Users\shane\workspace\gather_cfos_data\scripts"
 
@@ -115,13 +115,13 @@ def gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True):
 
 def zscore(cfos_vrt, control_dict):
     row_z = []
-    cfos_vrt_control = ["FP" in i for i in cfos_vrt.group]
-    cfos_vrt_control = cfos_vrt[cfos_vrt_control]
-    cfos_vrt_control["control_grp"] = cfos_vrt_control.group.map(control_dict)
+    cfos_vrt_control_bool = ["FP" in i for i in cfos_vrt.group]
+    cfos_vrt_control = cfos_vrt[cfos_vrt_control_bool]
+    cfos_vrt_control.loc[:, "control_grp"] = cfos_vrt_control.group.map(control_dict).to_list()
     cfos_vrt_control_mean = cfos_vrt_control.groupby(["name", "control_grp"]).agg(
         density_mean=("density (cells/mm^3)", "mean"),
         density_std=("density (cells/mm^3)", "std"))
-    cfos_vrt["control_grp"] = cfos_vrt.group.map(control_dict)
+    cfos_vrt.loc[:, "control_grp"] = cfos_vrt.group.map(control_dict)
     for row in cfos_vrt.iterrows():
         ctrl = cfos_vrt_control_mean.loc[row[1]["name"], row[1].control_grp]
         row_z.append((row[1]["density (cells/mm^3)"] - ctrl.density_mean)/ctrl.density_std)
@@ -146,13 +146,13 @@ def boxplot(cfos_vrt_collapse, labels, palette):
     plt.show()
 
 
-def boxplot_multi(cfos_vrt_collapse, y_data, plot_label, labels, palette):
+def boxplot_multi(cfos_vrt_collapse, y_data, plot_label, labels, palette, save_path=r"C:\Users\shane\workspace\gather_cfos_data\results"):
     order = ["iTBS_30sn_YFP", "iTBS_30sn_ChR", "1sn_GFP", "iTBS_1sn_ChR", "cTBS_1sn_ChR"]
     if not isinstance(labels, list):
         labels = [labels]
     cfos_vrt_collapse_sub = cfos_vrt_collapse[cfos_vrt_collapse["name"].isin(labels)]
     # sns.set_style("white")
-    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name", col_wrap=5, legend_out=True, size=5, aspect=1)
+    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name", col_wrap=5, legend_out=True, height=4.5, aspect=1)
     plt.style.use('ggplot')
     g.map(sns.boxplot, "group", y_data, order=order, palette=palette)
     g.map(sns.swarmplot, "group", y_data, order=order, edgecolor="gray", linewidth=1, palette=palette)
@@ -161,10 +161,14 @@ def boxplot_multi(cfos_vrt_collapse, y_data, plot_label, labels, palette):
         ax.axhline(0, ls='--')
     for axes in g.axes.flat:
         _ = axes.set_xticklabels(axes.get_xticklabels(), rotation=45)
-    plt.subplots_adjust(bottom=0.2)
-    g.fig.subplots_adjust(top=0.9)
-    g.fig.suptitle(y_data + ": " + plot_label, fontsize=16)
-    plt.show()
+    g.fig.subplots_adjust(top=0.9, bottom=0.2)
+    title = y_data + "_" + plot_label
+    save_path_full = save_path + r"/" + title + ".png"
+    save_path_full = save_path_full.replace(" ", "_").replace("^","")
+    g.fig.suptitle(title, fontsize=16)
+    print(save_path_full)
+    g.savefig(save_path_full)
+    return g
 
 
 def run_ttests(cfos_vrt_collapse):
@@ -268,10 +272,7 @@ def main():
     cfos_vrt_collapse["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict_collapse)
     t_test_df = run_ttests(cfos_vrt_collapse)
     # generate_venn_diagram(t_test_df, alpha=0.05)
-
-    breakpoint()
     # sns.boxplot(data=cfos_vrt[cfos_vrt["name"]=="left Prelimbic area"], x="group", y="density_zscore")
-    boxplot(cfos_vrt_collapse, labels='right Agranular insular area, posterior part, layer 1', palette=optoTMS_colors)
     (
         venn_diagram,
         sort_iTBS_30sn,
@@ -284,9 +285,10 @@ def main():
     top_11_20_iTBS_1sn = sort_iTBS_1sn.iloc[11:20].index.to_list()
     top_01_10_cTBS_1sn = sort_cTBS_1sn.iloc[0:10].index.to_list()
     top_11_20_cTBS_1sn = sort_cTBS_1sn.iloc[11:20].index.to_list()
+    cfos_vrt_collapse = cfos_vrt_collapse.rename(columns={"density (cells/mm^3)":"density_cells_per_mm3"})
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
+        y_data="density_cells_per_mm3",
         plot_label="PL primary targets",
         labels=prime_targets,
         palette=optoTMS_colors,
@@ -307,7 +309,7 @@ def main():
         )
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
+        y_data="density_cells_per_mm3",
         plot_label="Top hits (1-10) by iTBS 30 session p-value",
         labels=top_01_10_iTBS_30sn,
         palette=optoTMS_colors,
@@ -316,14 +318,14 @@ def main():
         cfos_vrt_collapse,
         y_data="density_zscore",
         plot_label="Top hits (11-20) by iTBS 30 session p-value",
-        labels=top_01_10_iTBS_30sn,
+        labels=top_11_20_iTBS_30sn,
         palette=optoTMS_colors,
         )
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
+        y_data="density_cells_per_mm3",
         plot_label="Top hits (11-20) by iTBS 30 session p-value",
-        labels=top_01_10_iTBS_30sn,
+        labels=top_11_20_iTBS_30sn,
         palette=optoTMS_colors,
         )
 
@@ -336,7 +338,7 @@ def main():
         )
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
+        y_data="density_cells_per_mm3",
         plot_label="Top hits (1-10) by iTBS 1 session p-value",
         labels=top_01_10_iTBS_1sn,
         palette=optoTMS_colors,
@@ -345,45 +347,46 @@ def main():
         cfos_vrt_collapse,
         y_data="density_zscore",
         plot_label="Top hits (11-20) by iTBS 1 session p-value",
-        labels=top_01_10_iTBS_1sn,
+        labels=top_11_20_iTBS_1sn,
         palette=optoTMS_colors,
         )
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
+        y_data="density_cells_per_mm3",
         plot_label="Top hits (11-20) by iTBS 1 session p-value",
-        labels=top_01_10_iTBS_1sn,
+        labels=top_11_20_iTBS_1sn,
         palette=optoTMS_colors,
         )
-        
+
     boxplot_multi(
         cfos_vrt_collapse,
         y_data="density_zscore",
-        plot_label="Top hits (1-10) by iTBS 1 session p-value",
-        labels=top_01_10_iTBS_1sn,
+        plot_label="Top hits (1-10) by cTBS 1 session p-value",
+        labels=top_01_10_cTBS_1sn,
         palette=optoTMS_colors,
         )
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
-        plot_label="Top hits (1-10) by iTBS 1 session p-value",
-        labels=top_01_10_iTBS_1sn,
+        y_data="density_cells_per_mm3",
+        plot_label="Top hits (1-10) by cTBS 1 session p-value",
+        labels=top_01_10_cTBS_1sn,
         palette=optoTMS_colors,
         )
     boxplot_multi(
         cfos_vrt_collapse,
         y_data="density_zscore",
-        plot_label="Top hits (11-20) by iTBS 1 session p-value",
-        labels=top_01_10_iTBS_1sn,
+        plot_label="Top hits (11-20) by cTBS 1 session p-value",
+        labels=top_11_20_cTBS_1sn,
         palette=optoTMS_colors,
         )
     boxplot_multi(
         cfos_vrt_collapse,
-        y_data="density (cells/mm^3)",
-        plot_label="Top hits (11-20) by iTBS 1 session p-value",
-        labels=top_01_10_iTBS_1sn,
+        y_data="density_cells_per_mm3",
+        plot_label="Top hits (11-20) by cTBS 1 session p-value",
+        labels=top_11_20_cTBS_1sn,
         palette=optoTMS_colors,
         )
-    top_hits_
+    cfos_vrt_collapse_pivot = pd.pivot_table(cfos_vrt_collapse, values = "density_zscore", index="name", columns="group", aggfunc=np.nanmean)
+    
 if __name__ == "__main__":
     main()
