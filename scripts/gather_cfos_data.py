@@ -136,8 +136,8 @@ def boxplot(cfos_vrt_collapse, labels, palette):
     fig, ax = plt.subplots(figsize=(10,6))
     # sns.set_style("white")
     plt.style.use('ggplot')
-    sns.boxplot(data=cfos_vrt_collapse_sub, ax=ax, x="group", y="density_z", order=order, palette=palette)
-    sns.swarmplot(data=cfos_vrt_collapse_sub, ax=ax, x="group", y="density_z", order=order, edgecolor="gray", linewidth=1, palette=palette)
+    sns.boxplot(data=cfos_vrt_collapse_sub, ax=ax, x="group", y="density_zscore", order=order, palette=palette)
+    sns.swarmplot(data=cfos_vrt_collapse_sub, ax=ax, x="group", y="density_zscore", order=order, edgecolor="gray", linewidth=1, palette=palette)
     plt.xticks(rotation=45)
     plt.ylabel("Density")
     plt.subplots_adjust(bottom=0.2)
@@ -146,22 +146,24 @@ def boxplot(cfos_vrt_collapse, labels, palette):
     plt.show()
 
 
-def boxplot_multi(cfos_vrt_collapse, labels, palette):
+def boxplot_multi(cfos_vrt_collapse, y_data, plot_label, labels, palette):
     order = ["iTBS_30sn_YFP", "iTBS_30sn_ChR", "1sn_GFP", "iTBS_1sn_ChR", "cTBS_1sn_ChR"]
     if not isinstance(labels, list):
         labels = [labels]
     cfos_vrt_collapse_sub = cfos_vrt_collapse[cfos_vrt_collapse["name"].isin(labels)]
-    fig, ax = plt.subplots(figsize=(10,6))
     # sns.set_style("white")
-    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name")
+    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name", col_wrap=5, legend_out=True, size=5, aspect=1)
     plt.style.use('ggplot')
-    g.map(sns.boxplot, "group", "density_z", order=order, palette=palette)
-    g.map(sns.swarmplot, "group", "density_z", order=order, edgecolor="gray", linewidth=1, palette=palette)
-    plt.xticks(rotation=45)
-    plt.ylabel("Density")
+    g.map(sns.boxplot, "group", y_data, order=order, palette=palette)
+    g.map(sns.swarmplot, "group", y_data, order=order, edgecolor="gray", linewidth=1, palette=palette)
+    g.set_titles(col_template="{col_name}")
+    for ax in g.axes:
+        ax.axhline(0, ls='--')
+    for axes in g.axes.flat:
+        _ = axes.set_xticklabels(axes.get_xticklabels(), rotation=45)
     plt.subplots_adjust(bottom=0.2)
-    ax.axhline(0, ls='--')
-    plt.title(labels)
+    g.fig.subplots_adjust(top=0.9)
+    g.fig.suptitle(y_data + ": " + plot_label, fontsize=16)
     plt.show()
 
 
@@ -172,15 +174,15 @@ def run_ttests(cfos_vrt_collapse):
 
     for i, region in enumerate(region_list):
         subset = cfos_vrt_collapse[cfos_vrt_collapse["name"] == region]
-        iTBS_t_test_30sn = ttest_ind(subset[subset["group"] == "iTBS_30sn_ChR"].density_z, subset[subset["group"] == "iTBS_30sn_YFP"].density_z) 
+        iTBS_t_test_30sn = ttest_ind(subset[subset["group"] == "iTBS_30sn_ChR"].density_zscore, subset[subset["group"] == "iTBS_30sn_YFP"].density_zscore) 
         t_test_df.loc[region].t_iTBS_30sn = iTBS_t_test_30sn[0]
         t_test_df.loc[region].p_iTBS_30sn = iTBS_t_test_30sn[1]
 
-        iTBS_t_test_1sn = ttest_ind(subset[subset["group"] == "iTBS_1sn_ChR"].density_z, subset[subset["group"] == "1sn_GFP"].density_z)
+        iTBS_t_test_1sn = ttest_ind(subset[subset["group"] == "iTBS_1sn_ChR"].density_zscore, subset[subset["group"] == "1sn_GFP"].density_zscore)
         t_test_df.loc[region].t_iTBS_1sn = iTBS_t_test_1sn[0]
         t_test_df.loc[region].p_iTBS_1sn = iTBS_t_test_1sn[1]
 
-        cTBS_t_test_1sn = ttest_ind(subset[subset["group"] == "cTBS_1sn_ChR"].density_z, subset[subset["group"] == "1sn_GFP"].density_z)
+        cTBS_t_test_1sn = ttest_ind(subset[subset["group"] == "cTBS_1sn_ChR"].density_zscore, subset[subset["group"] == "1sn_GFP"].density_zscore)
         t_test_df.loc[region].t_cTBS_1sn = cTBS_t_test_1sn[0]
         t_test_df.loc[region].p_cTBS_1sn = cTBS_t_test_1sn[1]
     return t_test_df
@@ -208,8 +210,8 @@ def generate_venn_diagram(t_test_df, alpha=0.05):
             set_labels=('iTBS_30session', 'iTBS_1session', 'cTBS_1session'),
             alpha = 0.5,
             )
-    plt.title("Overlap between significant cFos regions")
-    plt.show()
+    return venn_diagram, t_test_df_sort_iTBS_30sn, t_test_df_sort_iTBS_1sn, t_test_df_sort_cTBS_1sn
+
 
 def main():
     optoTMS_colors = {
@@ -219,7 +221,7 @@ def main():
         "1sn_GFP": '#D3D3D3',
         "cTBS_1sn_ChR": '#6495ED',
         }
-    optoTMS_colors = {"iTBS_30sn_ChR": '#FF8C00', "iTBS_1sn_ChR": '#FFE4C4', "iTBS_30sn_YFP": '#808080', "1sn_GFP": '#D3D3D3', "cTBS_1sn_ChR": '#6495ED'}
+
     control_dict = {
         "cTBS_1sn_ChR": "cTBS_1sn_GFP",
         "iTBS_1sn_ChR": "iTBS_1sn_GFP",
@@ -242,15 +244,15 @@ def main():
     
     prime_targets = [
         "left Prelimbic area",
-        "right Prelimbic area"
+        "right Prelimbic area",
         "left Caudoputamen",
         "right Caudoputamen",
         "left Nucleus accumbens",
         "right Nucleus accumbens",
         "left Infralimbic area",
         "right Infralimbic area",
-        "left Mediodorsal nucleus of thalamus"
-        "right Mediodorsal nucleus of thalamus"
+        "left Mediodorsal nucleus of thalamus",
+        "right Mediodorsal nucleus of thalamus",
     ]
 
     main_dir = r"Z:/SmartSPIM_Data/"
@@ -262,14 +264,126 @@ def main():
     # cfos_hrz = gather_cfos_files_horizontally(cfos_paths, groups)
     cfos_vrt = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=False)
     cfos_vrt_collapse = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True)
-    # cfos_vrt["density_z"] = zscore(cfos_vrt, control_dict=control_dict)
-    cfos_vrt_collapse["density_z"] = zscore(cfos_vrt, control_dict=control_dict_collapse)
+    # cfos_vrt["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict)
+    cfos_vrt_collapse["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict_collapse)
     t_test_df = run_ttests(cfos_vrt_collapse)
     # generate_venn_diagram(t_test_df, alpha=0.05)
 
     breakpoint()
-    # sns.boxplot(data=cfos_vrt[cfos_vrt["name"]=="left Prelimbic area"], x="group", y="density_z")
+    # sns.boxplot(data=cfos_vrt[cfos_vrt["name"]=="left Prelimbic area"], x="group", y="density_zscore")
     boxplot(cfos_vrt_collapse, labels='right Agranular insular area, posterior part, layer 1', palette=optoTMS_colors)
-    boxplot_multi(cfos_vrt_collapse, labels=prime_targets, palette=optoTMS_colors)
+    (
+        venn_diagram,
+        sort_iTBS_30sn,
+        sort_iTBS_1sn,
+        sort_cTBS_1sn,
+        ) = generate_venn_diagram(t_test_df, alpha=0.05)
+    top_01_10_iTBS_30sn = sort_iTBS_30sn.iloc[0:10].index.to_list()
+    top_11_20_iTBS_30sn = sort_iTBS_30sn.iloc[11:20].index.to_list()
+    top_01_10_iTBS_1sn = sort_iTBS_1sn.iloc[0:10].index.to_list()
+    top_11_20_iTBS_1sn = sort_iTBS_1sn.iloc[11:20].index.to_list()
+    top_01_10_cTBS_1sn = sort_cTBS_1sn.iloc[0:10].index.to_list()
+    top_11_20_cTBS_1sn = sort_cTBS_1sn.iloc[11:20].index.to_list()
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="PL primary targets",
+        labels=prime_targets,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="PL major targets",
+        labels=prime_targets,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="Top hits (1-10) by iTBS 30 session p-value",
+        labels=top_01_10_iTBS_30sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="Top hits (1-10) by iTBS 30 session p-value",
+        labels=top_01_10_iTBS_30sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="Top hits (11-20) by iTBS 30 session p-value",
+        labels=top_01_10_iTBS_30sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="Top hits (11-20) by iTBS 30 session p-value",
+        labels=top_01_10_iTBS_30sn,
+        palette=optoTMS_colors,
+        )
+
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="Top hits (1-10) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="Top hits (1-10) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="Top hits (11-20) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="Top hits (11-20) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+        
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="Top hits (1-10) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="Top hits (1-10) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density_zscore",
+        plot_label="Top hits (11-20) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    boxplot_multi(
+        cfos_vrt_collapse,
+        y_data="density (cells/mm^3)",
+        plot_label="Top hits (11-20) by iTBS 1 session p-value",
+        labels=top_01_10_iTBS_1sn,
+        palette=optoTMS_colors,
+        )
+    top_hits_
 if __name__ == "__main__":
     main()
