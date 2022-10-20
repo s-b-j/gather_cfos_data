@@ -7,7 +7,7 @@ from scipy.stats import ttest_ind
 from matplotlib_venn import venn3
 # test
 
-working_dir = r"C:\Users\shane\ListonLab Dropbox\Shane Johnson\shane\python_projects\gather_cfos_data\scripts"
+working_dir = r"C:\Users\shane\workspace\gather_cfos_data\scripts"
 
 exclusion_list = ["SJ0613", "SJ0608"]
 
@@ -146,6 +146,25 @@ def boxplot(cfos_vrt_collapse, labels, palette):
     plt.show()
 
 
+def boxplot_multi(cfos_vrt_collapse, labels, palette):
+    order = ["iTBS_30sn_YFP", "iTBS_30sn_ChR", "1sn_GFP", "iTBS_1sn_ChR", "cTBS_1sn_ChR"]
+    if not isinstance(labels, list):
+        labels = [labels]
+    cfos_vrt_collapse_sub = cfos_vrt_collapse[cfos_vrt_collapse["name"].isin(labels)]
+    fig, ax = plt.subplots(figsize=(10,6))
+    # sns.set_style("white")
+    g = sns.FacetGrid(cfos_vrt_collapse_sub, col="name")
+    plt.style.use('ggplot')
+    g.map(sns.boxplot, "group", "density_z", order=order, palette=palette)
+    g.map(sns.swarmplot, "group", "density_z", order=order, edgecolor="gray", linewidth=1, palette=palette)
+    plt.xticks(rotation=45)
+    plt.ylabel("Density")
+    plt.subplots_adjust(bottom=0.2)
+    ax.axhline(0, ls='--')
+    plt.title(labels)
+    plt.show()
+
+
 def run_ttests(cfos_vrt_collapse):
     region_list = cfos_vrt_collapse["name"].unique()
     t_test_df = pd.DataFrame({"region":region_list, "t_iTBS_30sn":"", "p_iTBS_30sn": "", "t_iTBS_1sn": "", "p_iTBS_1sn": "", "t_cTBS_1sn": "", "p_cTBS_1sn": ""})
@@ -166,6 +185,31 @@ def run_ttests(cfos_vrt_collapse):
         t_test_df.loc[region].p_cTBS_1sn = cTBS_t_test_1sn[1]
     return t_test_df
 
+
+def generate_venn_diagram(t_test_df, alpha=0.05):
+    t_test_df_sort_iTBS_30sn = t_test_df.sort_values(by=["p_iTBS_30sn"])
+    t_test_df_sort_iTBS_1sn = t_test_df.sort_values(by=["p_iTBS_1sn"])
+    t_test_df_sort_cTBS_1sn = t_test_df.sort_values(by=["p_cTBS_1sn"])
+    signif_iTBS_30sn = t_test_df[t_test_df["p_iTBS_30sn"] < alpha].reset_index().region.to_list()
+    signif_cTBS_1sn = t_test_df[t_test_df["p_cTBS_1sn"] < alpha].reset_index().region.to_list()
+    signif_iTBS_1sn = t_test_df[t_test_df["p_iTBS_1sn"] < alpha].reset_index().region.to_list()
+    set_iTBS_30sn = set(signif_iTBS_30sn)
+    set_iTBS_1sn = set(signif_iTBS_1sn)
+    set_cTBS_1sn = set(signif_cTBS_1sn)
+    venn_diagram = venn3(
+        subsets = (
+            len(set_iTBS_30sn.difference(set_iTBS_1sn.union(set_cTBS_1sn))),
+            len(set_iTBS_1sn.difference(set_iTBS_30sn.union(set_cTBS_1sn))),
+            len(set_iTBS_30sn.intersection(set_iTBS_1sn).difference(set_cTBS_1sn)),
+            len(set_cTBS_1sn.difference(set_iTBS_1sn.union(set_iTBS_30sn))),
+            len(set_iTBS_30sn.intersection(set_cTBS_1sn).difference(set_iTBS_1sn)),
+            len(set_iTBS_1sn.intersection(set_cTBS_1sn).difference(set_iTBS_30sn)),
+            len(set_iTBS_1sn.intersection(set_cTBS_1sn).intersection(set_iTBS_30sn))),
+            set_labels=('iTBS_30session', 'iTBS_1session', 'cTBS_1session'),
+            alpha = 0.5,
+            )
+    plt.title("Overlap between significant cFos regions")
+    plt.show()
 
 def main():
     optoTMS_colors = {
@@ -198,11 +242,19 @@ def main():
     
     prime_targets = [
         "left Prelimbic area",
-        ""
+        "right Prelimbic area"
+        "left Caudoputamen",
+        "right Caudoputamen",
+        "left Nucleus accumbens",
+        "right Nucleus accumbens",
+        "left Infralimbic area",
+        "right Infralimbic area",
+        "left Mediodorsal nucleus of thalamus"
+        "right Mediodorsal nucleus of thalamus"
     ]
 
     main_dir = r"Z:/SmartSPIM_Data/"
-    out_path = r"C:\Users\shane\ListonLab Dropbox\Shane Johnson\shane\python_projects\gather_cfos_data\data\cfos_dirs.csv"
+    out_path = r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_dirs.csv"
     group_path = r"C:\Users\shane\ListonLab Dropbox\Shane Johnson\shane\python_projects\gather_cfos_data\docs\optotms_animal_num_group.csv"
     groups = pd.read_csv(group_path)
     stack_dirs = get_stack_paths(main_dir)
@@ -213,29 +265,11 @@ def main():
     # cfos_vrt["density_z"] = zscore(cfos_vrt, control_dict=control_dict)
     cfos_vrt_collapse["density_z"] = zscore(cfos_vrt, control_dict=control_dict_collapse)
     t_test_df = run_ttests(cfos_vrt_collapse)
-    t_test_df_sort_iTBS_30sn = t_test_df.sort_values(by=["p_iTBS_30sn"])
-    t_test_df_sort_iTBS_1sn = t_test_df.sort_values(by=["p_iTBS_1sn"])
-    t_test_df_sort_cTBS_1sn = t_test_df.sort_values(by=["p_cTBS_1sn"])
-    signif_iTBS_30sn = t_test_df[t_test_df["p_iTBS_30sn"] < 0.05].reset_index().region.to_list()
-    signif_cTBS_1sn = t_test_df[t_test_df["p_cTBS_1sn"] < 0.05].reset_index().region.to_list()
-    signif_iTBS_1sn = t_test_df[t_test_df["p_iTBS_1sn"] < 0.05].reset_index().region.to_list()
-    set_iTBS_30sn = set(signif_iTBS_30sn)
-    set_iTBS_1sn = set(signif_iTBS_1sn)
-    set_cTBS_1sn = set(signif_cTBS_1sn)
-    venn3(
-        subsets = (
-            len(set_iTBS_30sn.difference(set_iTBS_1sn.union(set_cTBS_1sn))),
-            len(set_iTBS_1sn.difference(set_iTBS_30sn.union(set_cTBS_1sn))),
-            len(set_iTBS_30sn.intersection(set_iTBS_1sn).difference(set_cTBS_1sn)),
-            len(set_cTBS_1sn.difference(set_iTBS_1sn.union(set_iTBS_30sn))),
-            len(set_iTBS_30sn.intersection(set_cTBS_1sn).difference(set_iTBS_1sn)),
-            len(set_iTBS_1sn.intersection(set_cTBS_1sn).difference(set_iTBS_30sn)),
-            len(set_iTBS_1sn.intersection(set_cTBS_1sn).intersection(set_iTBS_30sn))),
-            set_labels=('iTBS_30session', 'iTBS_1session', 'cTBS_1session'),
-            alpha = 0.5)
+    # generate_venn_diagram(t_test_df, alpha=0.05)
+
     breakpoint()
     # sns.boxplot(data=cfos_vrt[cfos_vrt["name"]=="left Prelimbic area"], x="group", y="density_z")
     boxplot(cfos_vrt_collapse, labels='right Agranular insular area, posterior part, layer 1', palette=optoTMS_colors)
-
+    boxplot_multi(cfos_vrt_collapse, labels=prime_targets, palette=optoTMS_colors)
 if __name__ == "__main__":
     main()
