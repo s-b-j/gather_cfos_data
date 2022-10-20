@@ -194,7 +194,7 @@ def run_ttests(cfos_vrt_collapse):
     return t_test_df
 
 
-def generate_stats_and_venn(t_test_df, alpha=0.05):
+def generate_stats_and_venn(t_test_df, alpha=0.05, save_path=r"C:\Users\shane\workspace\gather_cfos_data\results"): # TODO: split this into two functions
     t_test_df_sort_iTBS_30sn = t_test_df.sort_values(by=["p_iTBS_30sn"])
     t_test_df_sort_iTBS_1sn = t_test_df.sort_values(by=["p_iTBS_1sn"])
     t_test_df_sort_cTBS_1sn = t_test_df.sort_values(by=["p_cTBS_1sn"])
@@ -216,6 +216,10 @@ def generate_stats_and_venn(t_test_df, alpha=0.05):
             set_labels=('iTBS_30session', 'iTBS_1session', 'cTBS_1session'),
             alpha = 0.5,
             )
+    title = "Venn diagram of significant regions"
+    plt.title(title)
+    save_path_full = save_path + r"/" + title + ".png"
+    plt.savefig(save_path_full)
     plt.close()
     return venn_diagram, t_test_df_sort_iTBS_30sn, t_test_df_sort_iTBS_1sn, t_test_df_sort_cTBS_1sn
 
