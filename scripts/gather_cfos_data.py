@@ -128,6 +128,7 @@ def zscore(cfos_vrt, control_dict):
     return row_z
 
 
+# function below is deprecated
 def boxplot(cfos_vrt_collapse, labels, palette):
     order = ["iTBS_30sn_YFP", "iTBS_30sn_ChR", "1sn_GFP", "iTBS_1sn_ChR", "cTBS_1sn_ChR"]
     if not isinstance(labels, list):
@@ -168,6 +169,7 @@ def boxplot_multi(cfos_vrt_collapse, y_data, plot_label, labels, palette, save_p
     g.fig.suptitle(title, fontsize=16)
     print(save_path_full)
     g.savefig(save_path_full)
+    plt.close()
     return g
 
 
@@ -179,20 +181,20 @@ def run_ttests(cfos_vrt_collapse):
     for i, region in enumerate(region_list):
         subset = cfos_vrt_collapse[cfos_vrt_collapse["name"] == region]
         iTBS_t_test_30sn = ttest_ind(subset[subset["group"] == "iTBS_30sn_ChR"].density_zscore, subset[subset["group"] == "iTBS_30sn_YFP"].density_zscore) 
-        t_test_df.loc[region].t_iTBS_30sn = iTBS_t_test_30sn[0]
-        t_test_df.loc[region].p_iTBS_30sn = iTBS_t_test_30sn[1]
+        t_test_df.loc[region].t_iTBS_30sn = pd.Series(iTBS_t_test_30sn[0]).fillna(0).values[0]
+        t_test_df.loc[region].p_iTBS_30sn = pd.Series(iTBS_t_test_30sn[1]).fillna(1).values[0]
 
         iTBS_t_test_1sn = ttest_ind(subset[subset["group"] == "iTBS_1sn_ChR"].density_zscore, subset[subset["group"] == "1sn_GFP"].density_zscore)
-        t_test_df.loc[region].t_iTBS_1sn = iTBS_t_test_1sn[0]
-        t_test_df.loc[region].p_iTBS_1sn = iTBS_t_test_1sn[1]
+        t_test_df.loc[region].t_iTBS_1sn = pd.Series(iTBS_t_test_1sn[0]).fillna(0).values[0]
+        t_test_df.loc[region].p_iTBS_1sn = pd.Series(iTBS_t_test_1sn[1]).fillna(1).values[0]
 
         cTBS_t_test_1sn = ttest_ind(subset[subset["group"] == "cTBS_1sn_ChR"].density_zscore, subset[subset["group"] == "1sn_GFP"].density_zscore)
-        t_test_df.loc[region].t_cTBS_1sn = cTBS_t_test_1sn[0]
-        t_test_df.loc[region].p_cTBS_1sn = cTBS_t_test_1sn[1]
+        t_test_df.loc[region].t_cTBS_1sn = pd.Series(cTBS_t_test_1sn[0]).fillna(0).values[0]
+        t_test_df.loc[region].p_cTBS_1sn = pd.Series(cTBS_t_test_1sn[1]).fillna(1).values[0]
     return t_test_df
 
 
-def generate_venn_diagram(t_test_df, alpha=0.05):
+def generate_stats_and_venn(t_test_df, alpha=0.05):
     t_test_df_sort_iTBS_30sn = t_test_df.sort_values(by=["p_iTBS_30sn"])
     t_test_df_sort_iTBS_1sn = t_test_df.sort_values(by=["p_iTBS_1sn"])
     t_test_df_sort_cTBS_1sn = t_test_df.sort_values(by=["p_cTBS_1sn"])
@@ -214,7 +216,23 @@ def generate_venn_diagram(t_test_df, alpha=0.05):
             set_labels=('iTBS_30session', 'iTBS_1session', 'cTBS_1session'),
             alpha = 0.5,
             )
+    plt.close()
     return venn_diagram, t_test_df_sort_iTBS_30sn, t_test_df_sort_iTBS_1sn, t_test_df_sort_cTBS_1sn
+
+
+def generate_heatmap(cfos_vrt_collapse, t_test_df, pval_label, title, save_path=r"C:\Users\shane\workspace\gather_cfos_data\results"):
+    pval_df = t_test_df[pval_label]
+    cfos_vrt_collapse_pivot = pd.pivot_table(cfos_vrt_collapse, values = "density_zscore", index="name", columns="group", aggfunc=np.nanmean)
+    cfos_vrt_collapse_pivot["pval"] = pval_df[cfos_vrt_collapse.index].values
+    cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.sort_values(by="pval")
+    cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.drop(columns=["1sn_GFP", "iTBS_30sn_YFP", "pval"]) # drop the control columns, which contain data centered on 0 and are thus not informative for a heatmap
+    g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5)
+    fig = g.figure
+    save_path_full = save_path + r"/" + title + ".png"
+    plt.subplots_adjust(left=0.5)
+    fig.savefig(save_path_full)
+    plt.close()
+    return g
 
 
 def main():
@@ -278,7 +296,7 @@ def main():
         sort_iTBS_30sn,
         sort_iTBS_1sn,
         sort_cTBS_1sn,
-        ) = generate_venn_diagram(t_test_df, alpha=0.05)
+        ) = generate_stats_and_venn(t_test_df, alpha=0.05)
     top_01_10_iTBS_30sn = sort_iTBS_30sn.iloc[0:10].index.to_list()
     top_11_20_iTBS_30sn = sort_iTBS_30sn.iloc[11:20].index.to_list()
     top_01_10_iTBS_1sn = sort_iTBS_1sn.iloc[0:10].index.to_list()
@@ -386,7 +404,9 @@ def main():
         labels=top_11_20_cTBS_1sn,
         palette=optoTMS_colors,
         )
-    cfos_vrt_collapse_pivot = pd.pivot_table(cfos_vrt_collapse, values = "density_zscore", index="name", columns="group", aggfunc=np.nanmean)
-    cfos_vrt_collapse_pivot
+
+    heatmap = generate_heatmap(cfos_vrt_collapse_sorted, t_test_df=t_test_df, pval_label = "p_iTBS_30sn", title="Density z-score by group and region", save_path=r"C:\Users\shane\workspace\gather_cfos_data\results") # TODO: make this less clunky
+
+
 if __name__ == "__main__":
     main()
