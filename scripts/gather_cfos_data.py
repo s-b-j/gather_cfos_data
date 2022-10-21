@@ -230,10 +230,11 @@ def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\sh
     # cfos_vrt_collapse_pivot["pval"] = pval_df[cfos_vrt_collapse_pivot.index].values
     cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.sort_values(by=sort_col)
     cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.drop(columns=["1sn_GFP", "iTBS_30sn_YFP"]) # drop the control columns, which contain data centered on 0 and are thus not informative for a heatmap
-    g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5, cbar_kws={'label': 'density_z-score'})
-    fig = g.figure
-    save_path_full = save_path + r"/" + title + ".png"
-    plt.subplots_adjust(left=0.6, bottom=0.3)
+    fig, ax = plt.subplots(figsize=(10,6))
+    g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5, ax=ax, cbar_kws={'label': 'density_z-score'})
+    save_path_full = save_path + r"/" + title + "_sort_by_" + sort_col + ".png"
+    plt.subplots_adjust(left=0.4, bottom=0.3)
+    plt.title(title + "\n" + "sorted by " + sort_col)
     plt.xticks(rotation=90)
     fig.savefig(save_path_full)
     plt.close()
@@ -411,7 +412,8 @@ def main():
         )
 
     heatmap = generate_heatmap(cfos_vrt_collapse, sort_col="iTBS_30sn_ChR", title="Density z-score by group and region", save_path=r"C:\Users\shane\workspace\gather_cfos_data\results") # TODO: make this less clunky
-
+    heatmap = generate_heatmap(cfos_vrt_collapse, sort_col="iTBS_1sn_ChR", title="Density z-score by group and region", save_path=r"C:\Users\shane\workspace\gather_cfos_data\results") # TODO: make this less clunky
+    heatmap = generate_heatmap(cfos_vrt_collapse, sort_col="cTBS_1sn_ChR", title="Density z-score by group and region", save_path=r"C:\Users\shane\workspace\gather_cfos_data\results") # TODO: make this less clunky
 
 if __name__ == "__main__":
     main()
