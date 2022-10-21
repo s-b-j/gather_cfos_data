@@ -230,7 +230,7 @@ def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\sh
     # cfos_vrt_collapse_pivot["pval"] = pval_df[cfos_vrt_collapse_pivot.index].values
     cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.sort_values(by=sort_col)
     cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.drop(columns=["1sn_GFP", "iTBS_30sn_YFP"]) # drop the control columns, which contain data centered on 0 and are thus not informative for a heatmap
-    g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5)
+    g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5, cbar_kws={'label': 'density_z-score'})
     fig = g.figure
     save_path_full = save_path + r"/" + title + ".png"
     plt.subplots_adjust(left=0.6, bottom=0.3)
