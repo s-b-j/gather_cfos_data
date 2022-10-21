@@ -45,44 +45,6 @@ def get_cfos_paths(stack_dirs, out_path):
     return cfos_paths
 
 
-def gather_cfos_files_horizontally(cfos_paths, groups, collapse_groups=True):
-    print("Gathering cfos files and stacking horizontally")
-    cfos_all = pd.DataFrame()
-    cfos_paths["animal_num"] = ["SJ"+file.split("SJ")[1][:4] for file in cfos_paths.directory]
-    cfos_paths_included = cfos_paths[np.logical_not(cfos_paths.animal_num.isin(exclusion_list))]
-    if collapse_groups:
-        for i, file in enumerate(cfos_paths_included.directory):
-            animal_num = "SJ"+file.split("SJ")[1][:4]
-            print(f"Gathering data from animal: {animal_num}")
-            group_dict = groups.set_index("animal_num")["group_collapse"].to_dict()
-            group = group_dict[animal_num]
-            animal_group = group + "_" + animal_num
-            if i == 0:
-                cfos = pd.read_csv(file, usecols = ['name', 'acronym', 'density (cells/mm^3)'])
-                cfos = cfos.rename(columns={"density (cells/mm^3)":animal_group})
-                cfos_all = pd.concat([cfos_all, cfos], axis=1)
-            else:
-                cfos = pd.read_csv(file, usecols = ['density (cells/mm^3)'])
-                cfos = cfos.rename(columns={"density (cells/mm^3)":animal_group})
-                cfos_all = pd.concat([cfos_all, cfos], axis=1)
-    else:
-        for i, file in enumerate(cfos_paths_included.directory):
-            animal_num = "SJ"+file.split("SJ")[1][:4]
-            print(f"Gathering data from animal: {animal_num}")
-            group_dict = groups.set_index("animal_num")["group"].to_dict()
-            group = group_dict[animal_num]
-            animal_group = group + "_" + animal_num
-            if i == 0:
-                cfos = pd.read_csv(file, usecols = ['name', 'acronym', 'density (cells/mm^3)'])
-                cfos = cfos.rename(columns={"density (cells/mm^3)":animal_group})
-                cfos_all = pd.concat([cfos_all, cfos], axis=1)
-            else:
-                cfos = pd.read_csv(file, usecols = ['density (cells/mm^3)'])
-                cfos = cfos.rename(columns={"density (cells/mm^3)":animal_group})
-                cfos_all = pd.concat([cfos_all, cfos], axis=1)
-    return cfos_all
-
-
 def gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True):
     print("Gathering cfos files and stacking vertically")
     cfos_all = pd.DataFrame()
@@ -296,7 +258,6 @@ def main():
     groups = pd.read_csv(group_path)
     stack_dirs = get_stack_paths(main_dir)
     cfos_paths = get_cfos_paths(stack_dirs, out_path)
-    cfos_hrz = gather_cfos_files_horizontally(cfos_paths, groups)
     cfos_vrt = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=False)
     cfos_hrz.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_horizontal.csv")
     cfos_vrt_collapse.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_vertical.csv")
