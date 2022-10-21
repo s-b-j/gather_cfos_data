@@ -124,7 +124,14 @@ def zscore(cfos_vrt, control_dict):
     cfos_vrt.loc[:, "control_grp"] = cfos_vrt.group.map(control_dict)
     for row in cfos_vrt.iterrows():
         ctrl = cfos_vrt_control_mean.loc[row[1]["name"], row[1].control_grp]
-        row_z.append((row[1]["density (cells/mm^3)"] - ctrl.density_mean)/ctrl.density_std)
+        density_val = row[1]["density (cells/mm^3)"]
+        ctrl_mean = ctrl.density_mean
+        ctrl_std = ctrl.density_std
+        if ctrl_std == 0:
+            ctrl_std = 0.01
+        density_zscore = (density_val - ctrl_mean)/ctrl_std
+        # print(f"density = {density_val}, ctrl_mean = {ctrl_mean}, ctrl_std = {ctrl_std}")
+        row_z.append(density_zscore)
     return row_z
 
 
@@ -230,7 +237,7 @@ def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\sh
     # cfos_vrt_collapse_pivot["pval"] = pval_df[cfos_vrt_collapse_pivot.index].values
     cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.sort_values(by=sort_col)
     cfos_vrt_collapse_pivot = cfos_vrt_collapse_pivot.drop(columns=["1sn_GFP", "iTBS_30sn_YFP"]) # drop the control columns, which contain data centered on 0 and are thus not informative for a heatmap
-    fig, ax = plt.subplots(figsize=(10,6))
+    fig, ax = plt.subplots(figsize=(12,8))
     g = sns.heatmap(cfos_vrt_collapse_pivot, cmap="icefire", center=0, vmin=-5, vmax=5, ax=ax, cbar_kws={'label': 'density_z-score'})
     save_path_full = save_path + r"/" + title + "_sort_by_" + sort_col + ".png"
     plt.subplots_adjust(left=0.4, bottom=0.3)
