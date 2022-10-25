@@ -259,8 +259,6 @@ def main():
     stack_dirs = get_stack_paths(main_dir)
     cfos_paths = get_cfos_paths(stack_dirs, out_path)
     cfos_vrt = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=False)
-    cfos_hrz.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_horizontal.csv")
-    cfos_vrt_collapse.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_vertical.csv")
     cfos_vrt_collapse = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True)
     # cfos_vrt["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict)
     cfos_vrt_collapse["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict_collapse)
@@ -286,6 +284,7 @@ def main():
     cfos_hrz_density_raw = pd.pivot_table(cfos_vrt_collapse, values="density_cells_per_mm3", index="name", columns="group_animal")
     cfos_hrz_density_zscore.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_horizontal_density_zscore.csv")
     cfos_hrz_density_raw.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_horizontal_density_raw.csv")
+    pd.Series(stack_dirs).to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_stack_dirs.csv")
     boxplot_multi(
         cfos_vrt_collapse,
         y_data="density_cells_per_mm3",
