@@ -1,3 +1,5 @@
+import argparse
+from pathlib import Path
 import os
 import pandas as pd
 import numpy as np
@@ -7,9 +9,59 @@ from scipy.stats import ttest_ind
 from matplotlib_venn import venn3
 pd.options.mode.chained_assignment = None
 
+# defining some global dictionaries and lists
+
+
+optoTMS_colors = {
+    "iTBS_30sn_ChR": '#FF8C00',
+    "iTBS_1sn_ChR": '#FFE4C4',
+    "iTBS_30sn_YFP": '#808080',
+    "1sn_GFP": '#D3D3D3',
+    "cTBS_1sn_ChR": '#6495ED',
+    }
+control_dict = {
+    "cTBS_1sn_ChR": "cTBS_1sn_GFP",
+    "iTBS_1sn_ChR": "iTBS_1sn_GFP",
+    "iTBS_30sn_ChR": "iTBS_30sn_YFP",
+    "cTBS_1sn_GFP": "cTBS_1sn_GFP",
+    "iTBS_1sn_GFP": "iTBS_1sn_GFP",
+    "iTBS_30sn_YFP": "iTBS_30sn_YFP",
+    "1sn_GFP": "1sn_GFP",
+    }
+control_dict_collapse = {
+    "cTBS_1sn_ChR": "1sn_GFP",
+    "iTBS_1sn_ChR": "1sn_GFP",
+    "iTBS_30sn_ChR": "iTBS_30sn_YFP",
+    "cTBS_1sn_GFP": "1sn_GFP",
+    "iTBS_1sn_GFP": "1sn_GFP",
+    "1sn_GFP": "1sn_GFP",
+    "iTBS_30sn_YFP":"iTBS_30sn_YFP",
+    }
+prime_targets = [
+    "left Prelimbic area",
+    "right Prelimbic area",
+    "left Caudoputamen",
+    "right Caudoputamen",
+    "left Nucleus accumbens",
+    "right Nucleus accumbens",
+    "left Infralimbic area",
+    "right Infralimbic area",
+    "left Mediodorsal nucleus of thalamus",
+    "right Mediodorsal nucleus of thalamus",
+]
+
+
 working_dir = r"C:\Users\shane\workspace\gather_cfos_data\scripts"
 
 exclusion_list = ["SJ0613", "SJ0608"]
+
+
+def parse_args():
+    parser=argparse.ArgumentParser(description="A script that reads in data from the NAS, processes it, and writes output tables")
+    parser.add_argument("--input_dir", "-i")
+    parser.add_argument("--output_dir", "-o")
+    args = parser.parse_args()
+    return args
 
 
 def get_stack_paths(main_dir):
@@ -210,54 +262,26 @@ def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\sh
     return g
 
 
+def get_groups(output_dir):
+    if "cfos_dirs.csv" not in output_dir:
+        group_path = output_dir + r"\data\cfos_dirs.csv"
+    elif "cfos_dirs.csv" in output_dir:
+        group_path = output_dir
+    return group_path
+
+
 def main():
-    optoTMS_colors = {
-        "iTBS_30sn_ChR": '#FF8C00',
-        "iTBS_1sn_ChR": '#FFE4C4',
-        "iTBS_30sn_YFP": '#808080',
-        "1sn_GFP": '#D3D3D3',
-        "cTBS_1sn_ChR": '#6495ED',
-        }
-
-    control_dict = {
-        "cTBS_1sn_ChR": "cTBS_1sn_GFP",
-        "iTBS_1sn_ChR": "iTBS_1sn_GFP",
-        "iTBS_30sn_ChR": "iTBS_30sn_YFP",
-        "cTBS_1sn_GFP": "cTBS_1sn_GFP",
-        "iTBS_1sn_GFP": "iTBS_1sn_GFP",
-        "iTBS_30sn_YFP": "iTBS_30sn_YFP",
-        "1sn_GFP": "1sn_GFP",
-        }
-
-    control_dict_collapse = {
-        "cTBS_1sn_ChR": "1sn_GFP",
-        "iTBS_1sn_ChR": "1sn_GFP",
-        "iTBS_30sn_ChR": "iTBS_30sn_YFP",
-        "cTBS_1sn_GFP": "1sn_GFP",
-        "iTBS_1sn_GFP": "1sn_GFP",
-        "1sn_GFP": "1sn_GFP",
-        "iTBS_30sn_YFP":"iTBS_30sn_YFP",
-        }
-    
-    prime_targets = [
-        "left Prelimbic area",
-        "right Prelimbic area",
-        "left Caudoputamen",
-        "right Caudoputamen",
-        "left Nucleus accumbens",
-        "right Nucleus accumbens",
-        "left Infralimbic area",
-        "right Infralimbic area",
-        "left Mediodorsal nucleus of thalamus",
-        "right Mediodorsal nucleus of thalamus",
-    ]
-
-    main_dir = r"Z:/SmartSPIM_Data/"
-    out_path = r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_dirs.csv"
+    args = parse_args()
+    print(f"Input directory = {args.input_dir}")
+    print(f"Output directory = {args.output_dir}")
+    print(f"Group path = {get_groups(args.output_dir)}")
+    breakpoint()
+    input_dir = r"Z:/SmartSPIM_Data/"
+    output_dir = r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_dirs.csv"
     group_path = r"C:\Users\shane\workspace\gather_cfos_data\docs\optotms_animal_num_group.csv"
     groups = pd.read_csv(group_path)
-    stack_dirs = get_stack_paths(main_dir)
-    cfos_paths = get_cfos_paths(stack_dirs, out_path)
+    stack_dirs = get_stack_paths(input_dir)
+    cfos_paths = get_cfos_paths(stack_dirs, output_dir)
     cfos_vrt = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=False)
     cfos_vrt_collapse = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True)
     # cfos_vrt["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict)
