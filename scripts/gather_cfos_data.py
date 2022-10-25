@@ -67,10 +67,12 @@ def parse_args():
 def get_stack_paths(main_dir):
     # if stack_dir_save_path does not exist or needs updating, run the following:
     stack_dirs = []
-    for path in os.listdir(main_dir):
-        for subdir in os.listdir(main_dir + path):
-            if (subdir.find("SJ") > 0) & (subdir.find("destriped") > 0):
-                stack_dirs.append(main_dir + path + "/" + subdir + "/")
+    paths = [path for path in main_dir.iterdir() if path.is_dir()]
+    for path in paths:
+        subdirs = [subdir for subdir in path.iterdir() if subdir.is_dir()]
+        for subdir in subdirs:
+            if (subdir.match("*SJ*") & subdir.match("*destriped*")):
+                stack_dirs.append(subdir)
             else:
                 pass
     # save stack_dirs
@@ -262,26 +264,21 @@ def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\sh
     return g
 
 
-def get_groups(output_dir):
-    if "cfos_dirs.csv" not in output_dir:
-        group_path = output_dir + r"\data\cfos_dirs.csv"
-    elif "cfos_dirs.csv" in output_dir:
-        group_path = output_dir
-    return group_path
-
-
 def main():
     args = parse_args()
-    print(f"Input directory = {args.input_dir}")
-    print(f"Output directory = {args.output_dir}")
-    print(f"Group path = {get_groups(args.output_dir)}")
-    breakpoint()
-    input_dir = r"Z:/SmartSPIM_Data/"
-    output_dir = r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_dirs.csv"
-    group_path = r"C:\Users\shane\workspace\gather_cfos_data\docs\optotms_animal_num_group.csv"
+    input_dir = Path(args.input_dir)
+    output_dir = Path(args.output_dir)
+    group_path = output_dir / "data/cfos_dirs.csv"
+    print(f"Input directory = {input_dir}")
+    print(f"Output directory = {output_dir}")
+    print(f"Group path = {group_path}")
+    # input_dir = r"Z:/SmartSPIM_Data/"
+    # output_dir = r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_dirs.csv"
+    # group_path = r"C:\Users\shane\workspace\gather_cfos_data\docs\optotms_animal_num_group.csv"
     groups = pd.read_csv(group_path)
     stack_dirs = get_stack_paths(input_dir)
-    cfos_paths = get_cfos_paths(stack_dirs, output_dir)
+    breakpoint()
+    cfos_paths = get_cfos_paths(stack_dirs, output_dir) # need to update this to use pathlib
     cfos_vrt = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=False)
     cfos_vrt_collapse = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True)
     # cfos_vrt["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict)
