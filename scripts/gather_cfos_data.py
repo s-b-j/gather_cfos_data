@@ -284,7 +284,7 @@ def main():
     cfos_hrz_density_raw = pd.pivot_table(cfos_vrt_collapse, values="density_cells_per_mm3", index="name", columns="group_animal")
     cfos_hrz_density_zscore.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_horizontal_density_zscore.csv")
     cfos_hrz_density_raw.to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_data_horizontal_density_raw.csv")
-    pd.Series(stack_dirs).to_csv(r"C:\Users\shane\workspace\gather_cfos_data\data\cfos_stack_dirs.csv")
+    pd.Series(stack_dirs).to_csv(r"C:\Users\shane\workspace\gather_cfos_data\docs\cfos_stack_dirs.csv")
     boxplot_multi(
         cfos_vrt_collapse,
         y_data="density_cells_per_mm3",
