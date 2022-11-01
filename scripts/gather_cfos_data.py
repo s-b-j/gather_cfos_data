@@ -80,33 +80,28 @@ def get_stack_paths(main_dir):
     return stack_dirs
 
 
-def get_cfos_paths(stack_dirs, out_path):
-    if os.path.exists(out_path):
-        cfos_paths = pd.read_csv(out_path)
-    else:
-        cfos_paths = pd.DataFrame()
-        for dir in stack_dirs:
-            if ("Ex_647_Em_680_stitched" in os.listdir(dir)):
-                cfos_dir = dir+"Ex_647_Em_680_stitched"
-                file_list = os.listdir(cfos_dir)
-                if file_list:
-                    point_file = [i for i in file_list if "Points_in_region" in i]
-                    if (point_file):
-                        cfos_path = pd.DataFrame({"directory": os.path.join(cfos_dir, str(point_file[0]))}, index=[0])
-                        cfos_paths = pd.concat([cfos_paths, cfos_path], axis=0)
-        print("Saving cfos paths to file")
-        cfos_paths.to_csv(out_path)
+def get_cfos_paths(stack_dirs, output_dir):
+    cfos_paths = pd.DataFrame()
+    for dir in stack_dirs:
+        cfos_dir = dir / "Ex_647_Em_680_stitched"
+        if cfos_dir.exists():
+            points_file = [i for i in cfos_dir.glob("**/*Points_in_region*.csv*")]
+            if points_file:
+                cfos_path = pd.DataFrame({"directory": points_file}, index=[0])
+                cfos_paths = pd.concat([cfos_paths, cfos_path], axis=0)
+    print("Saving cfos paths to file")
+    cfos_paths.to_csv(output_dir)
     return cfos_paths
 
 
 def gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True):
     print("Gathering cfos files and stacking vertically")
     cfos_all = pd.DataFrame()
-    cfos_paths["animal_num"] = ["SJ"+file.split("SJ")[1][:4] for file in cfos_paths.directory]
+    cfos_paths["animal_num"] = [i.parts[3].split("_")[4] for i in cfos_paths.directory]
     cfos_paths_included = cfos_paths[np.logical_not(cfos_paths.animal_num.isin(exclusion_list))]
     if collapse_groups:
         for i, file in enumerate(cfos_paths_included.directory):
-            animal_num = "SJ"+file.split("SJ")[1][:4]
+            animal_num = cfos_paths_included.animal_num.iloc[i]
             print(f"Gathering data from animal: {animal_num}")
             group_dict = groups.set_index("animal_num")["group_collapse"].to_dict() # TODO: stop mapping the control group name to the group name
             group = group_dict[animal_num]
@@ -117,7 +112,7 @@ def gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True):
             cfos_all = pd.concat([cfos_all, cfos], axis=0)
     else:
         for i, file in enumerate(cfos_paths_included.directory):
-            animal_num = "SJ" + file.split("SJ")[1][:4]
+            animal_num = cfos_paths_included.animal_num.iloc[i]
             print(f"Gathering data from animal: {animal_num}")
             group_dict = groups.set_index("animal_num")["group"].to_dict()
             group = group_dict[animal_num]
@@ -268,7 +263,7 @@ def main():
     args = parse_args()
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
-    group_path = output_dir / "data/cfos_dirs.csv"
+    group_path = output_dir / "docs/optotms_animal_num_group.csv"
     print(f"Input directory = {input_dir}")
     print(f"Output directory = {output_dir}")
     print(f"Group path = {group_path}")
@@ -277,8 +272,7 @@ def main():
     # group_path = r"C:\Users\shane\workspace\gather_cfos_data\docs\optotms_animal_num_group.csv"
     groups = pd.read_csv(group_path)
     stack_dirs = get_stack_paths(input_dir)
-    breakpoint()
-    cfos_paths = get_cfos_paths(stack_dirs, output_dir) # need to update this to use pathlib
+    cfos_paths = get_cfos_paths(stack_dirs, output_dir / "docs/cfos_paths.csv")
     cfos_vrt = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=False)
     cfos_vrt_collapse = gather_cfos_files_vertically(cfos_paths, groups, collapse_groups=True)
     # cfos_vrt["density_zscore"] = zscore(cfos_vrt, control_dict=control_dict)
