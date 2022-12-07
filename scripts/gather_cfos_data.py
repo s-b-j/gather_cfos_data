@@ -12,54 +12,17 @@ pd.options.mode.chained_assignment = None
 # defining some global dictionaries and lists
 
 
-optoTMS_colors = {
-    "iTBS_30sn_ChR": '#FF8C00',
-    "iTBS_1sn_ChR": '#FFE4C4',
-    "iTBS_30sn_YFP": '#808080',
-    "1sn_GFP": '#D3D3D3',
-    "cTBS_1sn_ChR": '#6495ED',
-    }
-control_dict = {
-    "cTBS_1sn_ChR": "cTBS_1sn_GFP",
-    "iTBS_1sn_ChR": "iTBS_1sn_GFP",
-    "iTBS_30sn_ChR": "iTBS_30sn_YFP",
-    "cTBS_1sn_GFP": "cTBS_1sn_GFP",
-    "iTBS_1sn_GFP": "iTBS_1sn_GFP",
-    "iTBS_30sn_YFP": "iTBS_30sn_YFP",
-    "1sn_GFP": "1sn_GFP",
-    }
-control_dict_collapse = {
-    "cTBS_1sn_ChR": "1sn_GFP",
-    "iTBS_1sn_ChR": "1sn_GFP",
-    "iTBS_30sn_ChR": "iTBS_30sn_YFP",
-    "cTBS_1sn_GFP": "1sn_GFP",
-    "iTBS_1sn_GFP": "1sn_GFP",
-    "1sn_GFP": "1sn_GFP",
-    "iTBS_30sn_YFP":"iTBS_30sn_YFP",
-    }
-prime_targets = [
-    "left Prelimbic area",
-    "right Prelimbic area",
-    "left Caudoputamen",
-    "right Caudoputamen",
-    "left Nucleus accumbens",
-    "right Nucleus accumbens",
-    "left Infralimbic area",
-    "right Infralimbic area",
-    "left Mediodorsal nucleus of thalamus",
-    "right Mediodorsal nucleus of thalamus",
-]
 
 
 working_dir = r"C:\Users\shane\workspace\gather_cfos_data\scripts"
 
-exclusion_list = ["SJ0613", "SJ0608"]
+exclusion_list = ["SJ0608"] # "SJ0613" may be included
 
 
 def parse_args():
-    parser=argparse.ArgumentParser(description="A script that reads in data from the NAS, processes it, and writes output tables")
-    parser.add_argument("--input_dir", "-i")
-    parser.add_argument("--output_dir", "-o")
+    parser = argparse.ArgumentParser(description="A script that reads in data from the NAS, processes it, and writes output tables")
+    parser.add_argument("--input_dir", "-i") # "Z:/SmartSPIM_Data/"
+    parser.add_argument("--output_dir", "-o") # "C:/Users/shane/workspace/gather_cfos_data/"
     args = parser.parse_args()
     return args
 
@@ -134,7 +97,10 @@ def zscore(cfos_vrt, control_dict):
         density_std=("density (cells/mm^3)", "std"))
     cfos_vrt.loc[:, "control_grp"] = cfos_vrt.group.map(control_dict)
     for row in cfos_vrt.iterrows():
-        ctrl = cfos_vrt_control_mean.loc[row[1]["name"], row[1].control_grp]
+        try:
+            ctrl = cfos_vrt_control_mean.loc[row[1]["name"], row[1].control_grp]
+        except KeyError:
+            breakpoint()
         density_val = row[1]["density (cells/mm^3)"]
         ctrl_mean = ctrl.density_mean
         ctrl_std = ctrl.density_std
@@ -260,6 +226,53 @@ def generate_heatmap(cfos_vrt_collapse, sort_col, title, save_path=r"C:\Users\sh
 
 
 def main():
+    optoTMS_colors = {
+        "iTBS_30sn_ChR": '#FF8C00',
+        "iTBS_1sn_ChR": '#FFE4C4',
+        "iTBS_30sn_YFP": '#808080',
+        "1sn_GFP": '#D3D3D3',
+        "cTBS_1sn_ChR": '#6495ED',
+        }
+    control_dict = {
+        "cTBS_1sn_ChR": "cTBS_1sn_GFP",
+        "iTBS_1sn_ChR": "iTBS_1sn_GFP",
+        "iTBS_30sn_ChR": "iTBS_30sn_YFP",
+        "cTBS_1sn_GFP": "cTBS_1sn_GFP",
+        "iTBS_1sn_GFP": "iTBS_1sn_GFP",
+        "iTBS_30sn_YFP": "iTBS_30sn_YFP",
+        "1sn_GFP": "1sn_GFP",
+        "iTBS_30sn_GFP_new": "iTBS_30sn_GFP_new",
+        "cTBS_30sn_GFP_new": "cTBS_30sn_GFP_new",
+        "iTBS_30sn_ChR_new": "iTBS_30sn_GFP_new",
+        "cTBS_30sn_ChR_new": "cTBS_30sn_GFP_new",
+        }
+        
+    control_dict_collapse = {
+        "cTBS_1sn_ChR": "1sn_GFP",
+        "iTBS_1sn_ChR": "1sn_GFP",
+        "iTBS_30sn_ChR": "iTBS_30sn_YFP",
+        "cTBS_1sn_GFP": "1sn_GFP",
+        "iTBS_1sn_GFP": "1sn_GFP",
+        "1sn_GFP": "1sn_GFP",
+        "iTBS_30sn_YFP":"iTBS_30sn_YFP",
+        "iTBS_30sn_GFP_new": "iTBS_30sn_GFP_new",
+        "cTBS_30sn_GFP_new": "cTBS_30sn_GFP_new",
+        "iTBS_30sn_ChR_new": "iTBS_30sn_GFP_new",
+        "cTBS_30sn_ChR_new": "cTBS_30sn_GFP_new",
+        }
+    prime_targets = [
+        "left Prelimbic area",
+        "right Prelimbic area",
+        "left Caudoputamen",
+        "right Caudoputamen",
+        "left Nucleus accumbens",
+        "right Nucleus accumbens",
+        "left Infralimbic area",
+        "right Infralimbic area",
+        "left Mediodorsal nucleus of thalamus",
+        "right Mediodorsal nucleus of thalamus",
+    ]
+
     args = parse_args()
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
