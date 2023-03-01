@@ -50,7 +50,9 @@ def get_cfos_paths(stack_dirs, output_dir):
         if cfos_dir.exists():
             points_file = [i for i in cfos_dir.glob("**/*Points_in_region*.csv*")]
             if points_file:
-                cfos_path = pd.DataFrame({"directory": points_file}, index=[0])
+                # if len(points_file) == 2:
+                #     breakpoint()
+                cfos_path = pd.DataFrame({"directory": points_file[0]}, index=[0])
                 cfos_paths = pd.concat([cfos_paths, cfos_path], axis=0)
     print("Saving cfos paths to file")
     cfos_paths.to_csv(output_dir)
@@ -355,7 +357,6 @@ def main():
         labels=top_11_20_iTBS_30sn,
         palette=optoTMS_colors,
         )
-
     boxplot_multi(
         cfos_vrt_collapse,
         y_data="density_zscore",
@@ -384,7 +385,6 @@ def main():
         labels=top_11_20_iTBS_1sn,
         palette=optoTMS_colors,
         )
-
     boxplot_multi(
         cfos_vrt_collapse,
         y_data="density_zscore",
